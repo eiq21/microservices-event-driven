@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  mongo:
+    container_name: mongo
+    image: mongo:4.2.16
+    hostname: mongo
+    restart: always
+    volumes:
+      - ./data-users:/data/db
+    ports:
+      - $MONGODB_LOCAL_PORT:$MONGODB_DOCKER_PORT
+    networks:
+      - local
+    env_file: ./.env
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: $MONGODB_USER
+      MONGO_INITDB_ROOT_PASSWORD: $MONGODB_PASSWORD
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+    networks:
+      - local
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: $MONGODB_USER
+      ME_CONFIG_MONGODB_ADMINPASSWORD: $MONGODB_PASSWORD
+      ME_CONFIG_MONGODB_URL: mongodb://root:123456@mongo:27017/
+    links:
+      - mongo
+
+  users:
+    build:
+      context: ./services/users
+    container_name: users
+    networks:
+      - local
+    volumes:
+      - ./services/users:/usr/src/app
+      # - /usr/src/app/node_modules
+    depends_on:
+      - mongo
+    links:
+      - mongo
+    ports:
+      - $USERS_LOCAL_PORT:$USERS_DOCKER_PORT
+    env_file: ./.env
+
+networks:
+  local:
+    driver: bridge
